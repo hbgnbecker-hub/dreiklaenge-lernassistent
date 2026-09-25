@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dreiklänge – Lernassistent</title>
+
+  <style>
+    :root {
+      --blue: #2457a6;
+      --light-blue: #eaf2ff;
+      --green: #198754;
+      --red: #c0392b;
+      --orange: #d97706;
+      --dark: #1f2937;
+      --border: #cbd5e1;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--dark);
+      background: #f3f6fb;
+      font-family: Arial, sans-serif;
+    }
+
+    header {
+      padding: 25px 15px;
+      color: white;
+      text-align: center;
+      background: linear-gradient(135deg, #173b75, #3478d4);
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.5rem, 4vw, 2.3rem);
+    }
+
+    header p {
+      margin: 0;
+    }
+
+    main {
+      width: min(1100px, 94%);
+      margin: 22px auto 40px;
+    }
+
+    .scorebar,
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: white;
+      box-shadow: 0 5px 18px rgba(29, 55, 90, .08);
+    }
+
+    .scorebar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 16px;
+      margin-bottom: 18px;
+      font-weight: bold;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .card {
+      padding: 20px;
+    }
+
+    .task-card {
+      border-top: 6px solid var(--blue);
+    }
+
+    .task {
+      padding: 16px;
+      border-radius: 12px;
+      background: var(--light-blue);
+    }
+
+    .task strong {
+      color: var(--blue);
+    }
+
+    .pattern {
+      margin: 15px 0;
+      font-size: 1.5rem;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .status,
+    .hint {
+      min-height: 48px;
+      padding: 12px;
+      margin-top: 14px;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+
+    .status.neutral {
+      color: #475569;
+      background: #f1f5f9;
+    }
+
+    .status.success {
+      color: #166534;
+      background: #dcfce7;
+    }
+
+    .status.error {
+      color: #991b1b;
+      background: #fee2e2;
+    }
+
+    .status.info {
+      color: #854d0e;
+      background: #fff3bf;
+    }
+
+    .hint {
+      border-left: 5px solid #f59e0b;
+      background: #fffbeb;
+      font-weight: normal;
+    }
+
+    button {
+      padding: 10px 14px;
+      margin: 4px;
+      border: 0;
+      border-radius: 9px;
+      color: white;
+      background: var(--blue);
+      cursor: pointer;
+      font-size: .95rem;
+    }
+
+    button:hover {
+      opacity: .88;
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: #64748b;
+    }
+
+    button.warning {
+      background: var(--orange);
+    }
+
+    button.success-button {
+      background: var(--green);
+    }
+
+    .formula-table {
+      width: 100%;
+      margin-top: 12px;
+      border-collapse: collapse;
+    }
+
+    .formula-table th,
+    .formula-table td {
+      padding: 9px;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .formula-table th {
+      background: var(--light-blue);
+    }
+
+    .keyboard-card {
+      margin-top: 18px;
+    }
+
+    .keyboard-wrapper {
+      overflow-x: auto;
+      padding: 14px 8px 8px;
+      border-radius: 12px;
+      background: #e2e8f0;
+    }
+
+    .keyboard {
+      position: relative;
+      display: flex;
+      width: 840px;
+      height: 230px;
+      margin: auto;
+      user-select: none;
+    }
+
+    .white-key {
+      position: relative;
+      flex: 1;
+      height: 230px;
+      padding-bottom: 11px;
+      border: 1px solid #64748b;
+      border-radius: 0 0 7px 7px;
+      color: #334155;
+      background: linear-gradient(to bottom, #fff, #e5e7eb);
+      cursor: pointer;
+      font-size: .8rem;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .white-key:hover {
+      background: #dbeafe;
+    }
+
+    .white-key.selected {
+      background: #93c5fd;
+      box-shadow: inset 0 -15px 0 #2563eb;
+      font-weight: bold;
+    }
+
+    .white-key.correct {
+      background: #86efac;
+      box-shadow: inset 0 -15px 0 #16a34a;
+    }
+
+    .white-key.wrong {
+      background: #fca5a5;
+      box-shadow: inset 0 -15px 0 #dc2626;
+    }
+
+    .black-key {
+      position: absolute;
+      z-index: 3;
+      top: 0;
+      width: 44px;
+      height: 138px;
+      padding: 0 2px 8px;
+      border: 1px solid #020617;
+      border-radius: 0 0 6px 6px;
+      color: white;
+      background: linear-gradient(135deg, #374151, #020617);
+      cursor: pointer;
+      font-size: .58rem;
+      line-height: 1.05;
+      text-align: center;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .black-key:hover {
+      background: #475569;
+    }
+
+    .black-key.selected {
+      background: #2563eb;
+      box-shadow: inset 0 -12px 0 #1d4ed8;
+    }
+
+    .black-key.correct {
+      background: #16a34a;
+    }
+
+    .black-key.wrong {
+      background: #dc2626;
+    }
+
+    .legend {
+      color: #475569;
+      font-size: .9rem;
+    }
+
+    @media (max-width: 800px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .keyboard {
+        width: 700px;
+        height: 195px;
+      }
+
+      .white-key {
+        height: 195px;
+      }
+
+      .black-key {
+        width: 37px;
+        height: 118px;
+        font-size: .52rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Dreiklänge auf der Klaviertastatur</h1>
+    <p>Dur und Moll anhand von Halbtonschritten erkennen</p>
+  </header>
+
+  <main>
+    <div class="scorebar">
+      <span>Aufgabe: <span id="taskNumber">1</span></span>
+      <span>Punkte: <span id="score">0</span></span>
+      <span>Richtig gelöst: <span id="correctCount">0</span></span>
+    </div>
+
+    <div class="layout">
+      <section class="card task-card">
+        <h2>Deine Aufgabe</h2>
+
+        <div class="task">
+          <p>
+            Baue den geforderten
+            <strong>Dur- oder Moll-Dreiklang</strong>
+            auf der Klaviertastatur.
+          </p>
+
+          <p>
+            Grundton:
+            <strong id="rootName">C</strong>
+          </p>
+
+          <p>
+            Dreiklangstyp:
+            <strong id="chordType">Dur</strong>
+          </p>
+
+          <div class="pattern" id="pattern">
+            4 + 3 Halbtonschritte
+          </div>
+
+          <p>
+            Klicke genau drei Tasten an. Die Töne werden abgespielt.
+          </p>
+        </div>
+
+        <div id="feedback" class="status neutral">
+          Wähle die drei Töne des geforderten Dreiklangs aus.
+        </div>
+
+        <div id="hintBox" class="hint">
+          Noch keine Hilfestufe angefordert.
+        </div>
+
+        <button id="hintButton" class="warning">
+          Hilfestufe 1
+        </button>
+
+        <button id="checkButton" class="success-button">
+          Auswahl prüfen
+        </button>
+
+        <button id="clearButton" class="secondary">
+          Auswahl löschen
+        </button>
+
+        <button id="newTaskButton">
+          Neue Aufgabe
+        </button>
+      </section>
+
+      <section class="card">
+        <h2>Merkwissen</h2>
+
+        <p>
+          Ein Dreiklang besteht aus
+          <strong>Grundton, Terz und Quinte</strong>.
+        </p>
+
+        <p>
+          Dur und Moll unterscheiden sich durch die Halbtonabstände:
+        </p>
+
+        <table class="formula-table">
+          <thead>
+            <tr>
+              <th>Typ</th>
+              <th>Abstände</th>
+              <th>Beispiel</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr>
+              <td><strong>Dur</strong></td>
+              <td>4 + 3</td>
+              <td>C – E – G</td>
+            </tr>
+
+            <tr>
+              <td><strong>Moll</strong></td>
+              <td>3 + 4</td>
+              <td>C – Es – G</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>
+          <strong>Merksatz:</strong>
+          Bei Moll ist die Terz gegenüber Dur um einen Halbton
+          nach unten verschoben.
+        </p>
+
+        <p>
+          Schwarze Tasten zeigen beide Namen, zum Beispiel
+          <strong>Cis / Des</strong> oder
+          <strong>Fis / Ges</strong>.
+        </p>
+      </section>
+    </div>
+
+    <section class="card keyboard-card">
+      <h2>Spielbare Klaviertastatur</h2>
+
+      <div class="keyboard-wrapper">
+        <div id="keyboard" class="keyboard"></div>
+      </div>
+
+      <p class="legend">
+        Blau = ausgewählt · Grün = richtig · Rot = falsch
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const whiteNotes = [
+      { name: "C", pc: 0 },
+      { name: "D", pc: 2 },
+      { name: "E", pc: 4 },
+      { name: "F", pc: 5 },
+      { name: "G", pc: 7 },
+      { name: "A", pc: 9 },
+      { name: "H", pc: 11 },
+      { name: "C", pc: 0 },
+      { name: "D", pc: 2 },
+      { name: "E", pc: 4 },
+      { name: "F", pc: 5 },
+      { name: "G", pc: 7 },
+      { name: "A", pc: 9 },
+      { name: "H", pc: 11 }
+    ];
+
+    const blackNotes = [
+      { name: "Cis / Des", pc: 1, left: 5.1 },
+      { name: "Dis / Es", pc: 3, left: 12.2 },
+      { name: "Fis / Ges", pc: 6, left: 26.5 },
+      { name: "Gis / As", pc: 8, left: 33.6 },
+      { name: "Ais / B", pc: 10, left: 40.8 },
+      { name: "Cis / Des", pc: 1, left: 55.1 },
+      { name: "Dis / Es", pc: 3, left: 62.2 },
+      { name: "Fis / Ges", pc: 6, left: 76.5 },
+      { name: "Gis / As", pc: 8, left: 83.6 },
+      { name: "Ais / B", pc: 10, left: 90.8 }
+    ];
+
+    const roots = [
+      { name: "C", pc: 0 },
+      { name: "D", pc: 2 },
+      { name: "E", pc: 4 },
+      { name: "F", pc: 5 },
+      { name: "G", pc: 7 },
+      { name: "A", pc: 9 },
+      { name: "H", pc: 11 }
+    ];
+
+    const chordTypes = [
+      {
+        name: "Dur",
+        intervals: [0, 4, 7],
+        pattern: "4 + 3 Halbtonschritte"
+      },
+      {
+        name: "Moll",
+        intervals: [0, 3, 7],
+        pattern: "3 + 4 Halbtonschritte"
+      }
+    ];
+
+    const keyboard = document.getElementById("keyboard");
+    const feedback = document.getElementById("feedback");
+    const hintBox = document.getElementById("hintBox");
+    const hintButton = document.getElementById("hintButton");
+
+    let currentTask;
+    let selectedKeys = [];
+    let score = 0;
+    let correctCount = 0;
+    let taskNumber = 1;
+    let hintLevel = 0;
+    let audioContext;
+
+    function createKeyboard() {
+      whiteNotes.forEach((note, index) => {
+        const key = document.createElement("button");
+
+        key.className = "white-key";
+        key.dataset.index = index;
+        key.dataset.pc = note.pc;
+        key.textContent = note.name;
+
+        key.addEventListener("click", () => selectKey(key));
+        keyboard.appendChild(key);
+      });
+
+      blackNotes.forEach((note, index) => {
+        const key = document.createElement("button");
+
+        key.className = "black-key";
+        key.dataset.index = "black-" + index;
+        key.dataset.pc = note.pc;
+        key.style.left = note.left + "%";
+        key.textContent = note.name;
+
+        key.addEventListener("click", event => {
+          event.stopPropagation();
+          selectKey(key);
+        });
+
+        keyboard.appendChild(key);
+      });
+    }
+
+    function playNote(pc) {
+      audioContext = audioContext || new AudioContext();
+
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      oscillator.type = "triangle";
+      oscillator.frequency.value =
+        261.63 * Math.pow(2, pc / 12);
+
+      gain.gain.setValueAtTime(
+        0.0001,
+        audioContext.currentTime
+      );
+
+      gain.gain.exponentialRampToValueAtTime(
+        0.25,
+        audioContext.currentTime + 0.02
+      );
+
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        audioContext.currentTime + 0.7
+      );
+
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.75);
+    }
+
+    function selectKey(key) {
+      const keyId = key.dataset.index;
+
+      if (selectedKeys.includes(keyId)) {
+        selectedKeys = selectedKeys.filter(id => id !== keyId);
+        key.classList.remove("selected");
+        return;
+      }
+
+      if (selectedKeys.length >= 3) {
+        setFeedback(
+          "Es sind bereits drei Tasten ausgewählt. " +
+          "Lösche zuerst die Auswahl.",
+          "info"
+        );
+        return;
+      }
+
+      selectedKeys.push(keyId);
+      key.classList.add("selected");
+      playNote(Number(key.dataset.pc));
+
+      if (selectedKeys.length === 3) {
+        setTimeout(checkAnswer, 350);
+      }
+    }
+
+    function normalize(values) {
+      return [...new Set(values.map(value => value % 12))]
+        .sort((a, b) => a - b);
+    }
+
+    function arraysEqual(first, second) {
+      return first.length === second.length &&
+        first.every((value, index) => value === second[index]);
+    }
+
+    function getSelectedPitchClasses() {
+      return [...document.querySelectorAll(".selected")]
+        .map(key => Number(key.dataset.pc));
+    }
+
+    function setFeedback(text, type) {
+      feedback.textContent = text;
+      feedback.className = "status " + type;
+    }
+
+    function checkAnswer() {
+      const selected = normalize(getSelectedPitchClasses());
+      const target = normalize(currentTask.targetPitches);
+
+      if (selected.length !== 3) {
+        setFeedback(
+          "Bitte wähle genau drei verschiedene Tasten aus.",
+          "info"
+        );
+        return;
+      }
+
+      document.querySelectorAll(".selected").forEach(key => {
+        const pc = Number(key.dataset.pc);
+
+        if (target.includes(pc)) {
+          key.classList.add("correct");
+        } else {
+          key.classList.add("wrong");
+        }
+      });
+
+      if (arraysEqual(selected, target)) {
+        score += 10;
+        correctCount++;
+
+        document.getElementById("score").textContent = score;
+        document.getElementById("correctCount").textContent =
+          correctCount;
+
+        setFeedback(
+          "Richtig! Das ist ein " +
+          currentTask.type.name +
+          "-Dreiklang mit dem Muster " +
+          currentTask.type.pattern +
+          ".",
+          "success"
+        );
+
+        hintButton.disabled = true;
+      } else {
+        score = Math.max(0, score - 2);
+        document.getElementById("score").textContent = score;
+
+        setFeedback(
+          "Noch nicht richtig. Überprüfe Grundton, Terz und Quinte.",
+          "error"
+        );
+      }
+    }
+
+    function clearSelection() {
+      selectedKeys = [];
+
+      document
+        .querySelectorAll(".selected, .correct, .wrong")
+        .forEach(key => {
+          key.classList.remove("selected", "correct", "wrong");
+        });
+
+      setFeedback(
+        "Die Auswahl wurde gelöscht. Wähle nun drei Töne aus.",
+        "neutral"
+      );
+    }
+
+    function showHint() {
+      hintLevel++;
+
+      if (hintLevel === 1) {
+        hintBox.textContent =
+          "Hilfestufe 1: Suche zuerst den Grundton " +
+          currentTask.root.name + ".";
+      } else if (hintLevel === 2) {
+        const thirdDistance =
+          currentTask.type.name === "Dur" ? 4 : 3;
+
+        hintBox.textContent =
+          "Hilfestufe 2: Gehe vom Grundton " +
+          thirdDistance +
+          " Halbtonschritte zur Terz und insgesamt " +
+          "7 Halbtonschritte zur Quinte.";
+      } else {
+        hintBox.textContent =
+          "Hilfestufe 3: Gesucht sind die Töne " +
+          currentTask.targetNames.join(" – ") +
+          ". Das ist ein " +
+          currentTask.type.name +
+          "-Dreiklang.";
+
+        hintButton.disabled = true;
+      }
+    }
+
+    function pitchClassName(pc) {
+      const names = [
+        "C",
+        "Cis / Des",
+        "D",
+        "Dis / Es",
+        "E",
+        "F",
+        "Fis / Ges",
+        "G",
+        "Gis / As",
+        "A",
+        "Ais / B",
+        "H"
+      ];
+
+      return names[pc];
+    }
+
+    function newTask() {
+      const root =
+        roots[Math.floor(Math.random() * roots.length)];
+
+      const type =
+        chordTypes[Math.floor(Math.random() * chordTypes.length)];
+
+      const targetPitches = type.intervals.map(interval =>
+        (root.pc + interval) % 12
+      );
+
+      currentTask = {
+        root: root,
+        type: type,
+        targetPitches: targetPitches,
+        targetNames: targetPitches.map(pitchClassName)
+      };
+
+      taskNumber++;
+      hintLevel = 0;
+
+      document.getElementById("taskNumber").textContent =
+        taskNumber;
+
+      document.getElementById("rootName").textContent =
+        root.name;
+
+      document.getElementById("chordType").textContent =
+        type.name;
+
+      document.getElementById("pattern").textContent =
+        type.pattern;
+
+      hintBox.textContent =
+        "Noch keine Hilfestufe angefordert.";
+
+      hintButton.disabled = false;
+
+      clearSelection();
+
+      setFeedback(
+        "Neue Aufgabe: Wähle die drei Töne des Dreiklangs aus.",
+        "neutral"
+      );
+    }
+
+    document.getElementById("hintButton")
+      .addEventListener("click", showHint);
+
+    document.getElementById("checkButton")
+      .addEventListener("click", checkAnswer);
+
+    document.getElementById("clearButton")
+      .addEventListener("click", clearSelection);
+
+    document.getElementById("newTaskButton")
+      .addEventListener("click", newTask);
+
+    createKeyboard();
+
+    currentTask = {
+      root: roots[0],
+      type: chordTypes[0],
+      targetPitches: [0, 4, 7],
+      targetNames: ["C", "E", "G"]
+    };
+  </script>
+</body>
+</html>
